@@ -1,3 +1,11 @@
+<div align="center">
+
+<img src="./.github/social-preview.png" alt="asEncoder — Leet 1337 translator & AES-256 cipher" width="100%"/>
+
+</div>
+
+---
+
 # asEncoder
 
 **Leet 1337 translator & AES-256 cipher — Turkish & English**
