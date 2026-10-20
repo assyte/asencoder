@@ -1,7 +1,16 @@
 /**
  * 🔤 BASİT LEET SÖZLÜĞÜ
- * Temel harf değişimleri. En okunabilir hali.
+ * Temel harf değişimleri — en okunabilir hali.
  * Hem Türkçe hem İngilizce karakterleri kapsar.
+ *
+ * Tasarım kararı — Türkçe harfler neden indirgeniyor:
+ *   `ş` doğrudan `$` olsaydı, çıktı orta seviyeye kayardı. "Basit"
+ *   seviyenin sözü okunabilirlik olduğu için Türkçe harfler önce
+ *   Latin karşılıklarına indirgenir (`ş → s`), sonra o harf kendi
+ *   dönüşümünü alır (`s → 5`). Sonuç: `şifre → s1fr3`.
+ *
+ *   Bu iki adımlı yol kasıtlıdır; Türkçe harflerin kendine ait leet
+ *   karşılıkları (`ş → §`, `ü → v`) orta ve zor seviyelerde devreye girer.
  */
 
 export const BASIC_LEET: Record<string, string> = {
@@ -33,7 +42,7 @@ export const BASIC_LEET: Record<string, string> = {
   y: "y",
   z: "z",
 
-  // Türkçe özel karakterler
+  // Türkçe küçük harfler → Latin karşılıkları
   ç: "c",
   ğ: "g",
   ş: "s",
@@ -69,10 +78,10 @@ export const BASIC_LEET: Record<string, string> = {
   Y: "Y",
   Z: "Z",
 
+  // Türkçe büyük harfler → Latin karşılıkları (I ile tutarlı)
   Ç: "C",
   Ğ: "G",
   Ş: "S",
   Ö: "O",
   Ü: "U",
-  İ: "1",
 };

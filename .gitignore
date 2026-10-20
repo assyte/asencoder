@@ -45,3 +45,8 @@ next-env.d.ts
 # OS
 $RECYCLE.BIN/
 *.lnk
+
+# Local planning & backup files
+DOKUMANTASYON-PLANI.md
+README.original.md
+docs/README.backup.md
