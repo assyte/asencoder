@@ -1,0 +1,78 @@
+/**
+ * 🔤 BASİT LEET SÖZLÜĞÜ
+ * Temel harf değişimleri. En okunabilir hali.
+ * Hem Türkçe hem İngilizce karakterleri kapsar.
+ */
+
+export const BASIC_LEET: Record<string, string> = {
+  // Standart İngilizce harfleri
+  a: "@",
+  b: "b",
+  c: "c",
+  d: "d",
+  e: "3",
+  f: "f",
+  g: "g",
+  h: "h",
+  i: "1",
+  j: "j",
+  k: "k",
+  l: "1",
+  m: "m",
+  n: "n",
+  o: "0",
+  p: "p",
+  q: "q",
+  r: "r",
+  s: "5",
+  t: "7",
+  u: "u",
+  v: "v",
+  w: "w",
+  x: "x",
+  y: "y",
+  z: "z",
+
+  // Türkçe özel karakterler
+  ç: "c",
+  ğ: "g",
+  ş: "s",
+  ö: "o",
+  ü: "u",
+  ı: "i",
+
+  // Büyük harfler
+  A: "@",
+  B: "B",
+  C: "C",
+  D: "D",
+  E: "3",
+  F: "F",
+  G: "G",
+  H: "H",
+  I: "1",
+  J: "J",
+  K: "K",
+  L: "1",
+  M: "M",
+  N: "N",
+  O: "0",
+  P: "P",
+  Q: "Q",
+  R: "R",
+  S: "5",
+  T: "7",
+  U: "U",
+  V: "V",
+  W: "W",
+  X: "X",
+  Y: "Y",
+  Z: "Z",
+
+  Ç: "C",
+  Ğ: "G",
+  Ş: "S",
+  Ö: "O",
+  Ü: "U",
+  İ: "1",
+};
