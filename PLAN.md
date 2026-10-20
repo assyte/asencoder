@@ -1,7 +1,8 @@
 # asEncoder — Proje Planı
 
-> Durum: **v1.0 tamamlandı.** Bu belge artık tarihsel plan ve gelecek fikirler içerir.
-> Güncel mimari için [README.md](./README.md) → Architecture bölümüne bak.
+> Durum: **v1.0 tamamlandı.** Next.js 16 + React 19 + static export.
+> Bu belge mimari kararları, düzeltme geçmişini ve gelecek fikirleri içerir.
+> Güncel kullanım için [README.md](./README.md).
 
 ## 🎯 Hedef
 
@@ -12,11 +13,11 @@ Türkçe & İngilizce metni **Leet 1337** diline çeviren, **3 zorluk seviyesi**
 
 ---
 
-## ✅ Tamamlananlar (Faz 0–7)
+## ✅ Tamamlananlar
 
 | Faz | İş | Durum |
 |---|---|---|
-| 0 | Next.js 14 + TS + Tailwind kurulumu | ✅ |
+| 0 | Next.js kurulumu + TS + Tailwind | ✅ |
 | 1 | Tema sistemi (CSS değişkenleri, flash önleme script'i) | ✅ |
 | 2 | Tasarım sistemi (NeuButton, Toast, HackerBackground) | ✅ |
 | 3 | Leet motoru — 3 sözlük + kelime kısaltmaları | ✅ |
@@ -24,52 +25,83 @@ Türkçe & İngilizce metni **Leet 1337** diline çeviren, **3 zorluk seviyesi**
 | 5 | `.txt` dosya yükleme/indirme | ✅ |
 | 6 | Dashboard entegrasyonu (3 panel) | ✅ |
 | 7 | Polish — animasyon, mobil, README, görsel optimizasyonu | ✅ |
+| 8 | **Next.js 16 + React 19 yükseltmesi** | ✅ |
+| 9 | **ESLint 9 flat config** | ✅ |
+| 10 | **Static export** (sunucu katmanı tamamen kaldırıldı) | ✅ |
 
 ---
 
 ## 🔧 Yayın Öncesi Yapılan Düzeltmeler
 
-Bu turda bulunan ve giderilen gerçek hatalar:
+### Kritik mantık hataları
 
-### Kritik hatalar
+**1. Çift çeviri hatası (`translateToLeet`)**
 
-1. **Çift çeviri hatası (`translateToLeet`)**
-   Kelime kısaltmaları (`the → 7h3`) önce uygulanıp sonra tüm metin harf harf
-   çevrildiği için kısaltma bozuluyordu. Ayrıca `applyWordShortcuts` içinde
-   placeholder mekanizması **32 satırlık yarım kod** olarak kalmıştı — derlenmiyordu.
+Kelime kısaltmaları (`the → 7h3`) önce uygulanıp sonra tüm metin harf harf
+çevrildiği için kısaltma bozuluyordu. Ayrıca `applyWordShortcuts` içindeki
+placeholder mekanizması 32 satırlık yarım kod olarak kalmıştı — derlenmiyordu.
 
-   **Çözüm:** Metin kelime + ayraç parçalarına bölünüyor. Her kelime için:
-   kısaltma varsa olduğu gibi ekleniyor, yoksa harf çevirisi uygulanıyor.
+**Çözüm:** Metin kelime + ayraç parçalarına bölünüyor (`split(/([\s\p{P}\p{S}]+)/u)`).
+Her kelime için: kısaltma varsa olduğu gibi ekleniyor, yoksa harf çevirisi uygulanıyor.
+Bu ayrıca `there`/`the` kelime sınırı çakışmasını da engelliyor.
 
-2. **`NeuPanel.tsx` ölü kod** — hiçbir yerde kullanılmıyordu, silindi.
+| Tuzak | Eski | Yeni |
+|---|---|---|
+| Çift çeviri | `the` → `7h3` → `7h15` | `the` → `7h3` ✅ |
+| Alt-kelime | `there` → `7h3r3` | `there` değişmez ✅ |
 
-3. **`FileHandler` imza tutarsızlığı** — `onLoad(content, filename)` imzalıydı
-   ama `TranslatorPanel` tek argüman geçiyordu. Ayrıca `canDownload`/`onDownload`
-   prop'ları gereksiz ve her yerde `false`/`() => {}` geçiliyordu.
-   **Çözüm:** `download?: { getText, filename } | null` olarak sadeleştirildi.
+**2. `NeuPanel.tsx` ölü kod** — hiçbir yerde kullanılmıyordu, silindi.
 
-4. **`REVERSE_LEET` tekrar eden anahtar** — `}{` hem `h` hem `x` için tanımlıydı
-   (TypeScript derlemeyi engelliyordu). Ayrıca Türkçe karşılıklar hiç yoktu.
-   **Çözüm:** Çakışma giderildi, benzersiz Türkçe semboller (`¢ § v ¶`) eklendi.
-   Belirsiz olanlar (`9`, `0`, `1`) **bilinçli olarak tanımlanmadı** ve nedeni
-   kodda yorum olarak açıklandı.
+**3. `FileHandler` imza tutarsızlığı** — `onLoad(content, filename)` imzalıydı
+ama `TranslatorPanel` tek argüman geçiyordu. `canDownload`/`onDownload`
+prop'ları gereksiz ve her yerde `false`/`() => {}` geçiliyordu.
+**Çözüm:** `download?: { getText, filename } | null` olarak sadeleştirildi.
+Ayrıca 1 MB dosya limiti ve UTF-8 okuma eklendi.
 
-### Kalite iyileştirmeleri
+**4. `REVERSE_LEET` tekrar eden anahtar** — `}{` hem `h` hem `x` için tanımlıydı
+(TypeScript derlemeyi engelliyordu). Türkçe karşılıklar hiç yoktu.
+**Çözüm:** Çakışma giderildi, benzersiz Türkçe semboller (`¢ § v ¶`) eklendi.
+Belirsiz olanlar (`9`, `0`, `1`) **bilinçli olarak tanımlanmadı** ve nedeni
+kodda yorum olarak açıklandı — `1` hem `l` hem `ı` olabilir, tek seçim yanlış olurdu.
 
-5. **Görsel optimizasyonu** — `logo-character.png` 272 KB → **22 KB** (%92),
-   `icon.png` 272 KB → 75 KB, `bg-character.png` 270 KB → 121 KB.
-   Logo 56px görüntülendiği için 607px gereksizdi.
+### React 19 / Next.js 16 yükseltmesi
 
-6. **CI/CD eklendi** — `.github/workflows/ci.yml`: type-check → lint → build
-   zinciri + ayrı `npm audit` job'ı.
+**5. `ThemeToggle` hydration hatası** — `useEffect` içinde `setState` çağrısı
+hem cascading render üretiyor hem de hydration mismatch riski taşıyordu.
+**Çözüm:** `useSyncExternalStore` kullanıldı. Sunucu snapshot'ı ile istemci
+snapshot'ı karşılaştırılıyor, hydration sırasında doğru değer kullanılıyor,
+dış sistem değişimlerine abone olunuyor.
 
-7. **ESLint kuruldu** — `eslint@8` + `eslint-config-next@14.2.5`. CI'da
-   `npm run lint` çalışıyordu ama bağımlılık eksikti, her seferinde patlardı.
+**6. ESLint 9 flat config** — `eslint-config-next@16` ESLint 9 gerektiriyor.
+`.eslintrc.json` → `eslint.config.mjs` dönüşümü yapıldı.
+`next lint` kaldırıldı (Next 16'da deprecated), doğrudan `eslint .` çağrılıyor.
 
-8. **README yeniden yazıldı** — Data Flow diyagramı, çift çeviri tuzağı
-   açıklaması, güvenlik/cipher format detayları, Roadmap eklendi.
+**7. BOM hataları** — Windows `Set-Content` ile yazılan dosyalarda UTF-8 BOM
+oluşmuştu; ESLint JSON parse hatası veriyordu. BOM temizlendi.
 
-9. **`.gitignore` doğrulandı** — `*.tsbuildinfo` ve `next-env.d.yaml` ignore ediliyor.
+**8. Static export** — `output: "export"` ile sunucu katmanı tamamen kaldırıldı.
+`npm start` yerine `npm run preview` (statik sunucu).
+Artık herhangi bir statik host'a deploy edilebilir.
+
+### Güvenlik
+
+**9. Next.js güvenlik açıkları** — 14.2.5 sürümünde 15+ kritik advisory vardı
+(Server Actions, middleware, RSC cache, image optimizer).
+Tüm bu açıkların **kaynağı sunucu katmanıdır**. 16.4.2'ye yükseltildi ve
+static export ile sunucu tarafı tamamen devre dışı bırakıldı.
+
+**Sonuç:** `npm audit --omit=dev` → **0 açık**.
+
+### Kalite
+
+**10. Görsel optimizasyonu** — `logo-character.png` 272 KB → **22 KB** (%92),
+`icon.png` 272 KB → 75 KB, `bg-character.png` 270 KB → 121 KB.
+
+**11. CI/CD** — type-check → lint → build zinciri + statik çıktı doğrulama
+(`out/index.html` kontrolü) + ayrı `npm audit --omit=dev` job'ı.
+
+**12. README yeniden yazıldı** — Data Flow diyagramı, çift çeviri tuzağı
+açıklaması, cipher format detayları, deploy seçenekleri, roadmap.
 
 ---
 
@@ -103,7 +135,10 @@ Bu turda bulunan ve giderilen gerçek hatalar:
 |---|---|
 | `npm run type-check` | ✅ Hatasız |
 | `npm run lint` | ✅ Uyarısız |
-| `npm run build` | ✅ Başarılı — `/` 14.4 kB, First Load 101 kB |
+| `npm run build` | ✅ Başarılı — Turbopack, ~800ms |
+| `npm audit --omit=dev` | ✅ **0 açık** |
+| Dev sunucusu | ✅ HTTP 200, sayfa düzgün render |
+| Static export | ✅ `out/index.html` üretildi |
 
 ---
 
@@ -125,6 +160,8 @@ Bu turda bulunan ve giderilen gerçek hatalar:
 - [ ] **İki dilli arayüz** — TR/EN UI toggle (şu an sadece içerik dili)
 - [ ] **Özel leet profilleri** — kullanıcı kendi harf eşlemesini tanımlayabilir
 - [ ] **Toplu dönüştürme** — klasördeki tüm `.txt` dosyalarını toplu işle
+- [ ] **Web Worker** ile `Math.random()` yerine `crypto.getRandomValues()`
+      (zor seviye için CSPRNG — demo yeterli ama üretimde doğru olan bu)
 
 ---
 
@@ -134,12 +171,16 @@ Bu turda bulunan ve giderilen gerçek hatalar:
 |---|---|
 | **AES-GCM, XOR değil** | XOR kaba kuvvetle kırılır ve bütünlük doğrulaması yok. GCM hem şifreler hem doğrular (auth tag). Videoda "neden XOR değil" diye anlatılacak. |
 | **Web Crypto API, kütüphane değil** | `crypto.subtle` tarayıcının tamamında var. Ekstra 200 KB paket gerekmez, bağımlılık zinciri olmaz, güvenlik açığı yüzeyi küçük kalır. |
-| **PBKDF2 100.000 iterasyon** | OWASP önerisi. SALT uzunluğu 16 bayt. |
+| **PBKDF2 100.000 iterasyon** | OWASP önerisi. Salt uzunluğu 16 bayt. |
 | **Parça bazlı çeviri** | Regex ile kelime bulmak hem `there`/`the` çakışması üretir hem de kısaltma bozulmasına yol açar. `split(/([\s\p{P}\p{S}]+)/u)` hem kelime sınırı hem ayraç koruması verir. |
-| **Zor seviye `Math.random()`** | Demo için yeterli. Üretimde `crypto.getRandomValues()` kullanılmalı — not eklendi. |
+| **Zor seviye `Math.random()`** | Demo için yeterli. Üretimde `crypto.getRandomValues()` kullanılmalı. |
 | **Tema flash önleme** | `localStorage`'a erişim `useEffect`'ten **önce** olamaz (hydration uyuşmazlığı). Çözüm: `<head>` içinde küçük bir inline script. |
-| **`REVERSE_LEET` belirsizlikler** | `1` hem `l` hem `ı` olabilir. Sözlükte tekrarlı anahtar tanımlamak TypeScript'i kırar ve yanlış sonuç verir. Bu yüzden belirsiz semboller **atlanır**, kodda yorumlanır. |
+| **`useSyncExternalStore` (TemaToggle)** | Tema `<head>` script'i ile hydrate ÖNCESİ uygulanır. Bu yüzden React ilk render'da doğru değeri bilmeli. `useEffect`+`setState` ikisini de çözmüyor. |
+| **`REVERSE_LEET` belirsizlikler** | `1` hem `l` hem `ı` olabilir. Tekrarlı anahtar tanımlamak TypeScript'i kırar ve yanlış sonuç verir. Belirsiz semboller **atlanır**, kodda yorumlanır. |
 | **`.txt` dosya boyut limiti** | `FileHandler` 1 MB üzeri dosyaları reddeder — tarayıcıyı kilitlememek için. |
+| **Static export** | Şifreleme tarayıcıda yapılıyor, sunucu katmanına ihtiyaç yok. `output: "export"` ile saldırı yüzeyi sıfır ve herhangi bir statik host'a deploy edilebilir. |
+| **Next.js 16 + React 19** | 14.x serisindeki güvenlik açıkları sunucu katmanından geliyordu. Yükseltme + static export birlikte bunları tamamen ortadan kaldırdı. |
+| **`npm audit --omit=dev` (CI)** | Kalan uyarıların tamamı build-time araçlardan geliyor (`chokidar`, `fast-glob`, `glob`) ve tarayıcıya paketlenmiyor. CI'yı kırmaz, bilgi amaçlı ayrı rapor çalışır. |
 
 ---
 
@@ -154,11 +195,11 @@ asencoder/
 │   └── icon.png             # Favicon (512px, 75 KB)
 ├── components/
 │   ├── HackerBackground.tsx # Izgara + karakter arka planı
-│   ├── ThemeToggle.tsx
+│   ├── ThemeToggle.tsx      # useSyncExternalStore ile tema
 │   ├── TranslatorPanel.tsx  # Sol panel: giriş + dil + seviye
 │   ├── OutputPanel.tsx      # Sağ panel: 3 varyasyon + sekmeler
 │   ├── CryptoPanel.tsx      # Şifrele / çöz
-│   ├── FileHandler.tsx      # .txt yükle / indir
+│   ├── FileHandler.tsx      # .txt yükle / indir (1 MB limit)
 │   ├── NeuButton.tsx
 │   └── Toast.tsx
 ├── lib/
@@ -175,8 +216,13 @@ asencoder/
 ├── public/
 │   ├── logo-character.png   # 256px, 22 KB
 │   └── bg-character.png     # 1920px, 121 KB
-├── .github/workflows/ci.yml
-└── docs/                    # (gelecekte) ek dokümantasyon
+├── .github/
+│   ├── workflows/ci.yml     # type-check → lint → build + audit
+│   ├── social-preview.png   # 1280x640
+│   └── og-image.png         # 1200x630
+├── eslint.config.mjs        # ESLint 9 flat config
+├── next.config.mjs          # static export
+└── out/                     # build çıktısı (gitignore)
 ```
 
 ---
@@ -195,10 +241,14 @@ Videoda anlatılabilecek güçlü noktalar:
 5. **Salt + IV neden gerekli** — aynı metin iki kez şifrelenince farklı çıkmalı.
 6. **Tema flash sorunu** — hydration'dan önce `<head>`'e script koyma tekniği.
 7. **Görsel optimizasyonu** — 272 KB → 22 KB.
+8. **Next.js güvenlik açıkları** — audit'te çıkan 15+ advisory, static export
+   ile nasıl tamamen ortadan kaldırıldığı.
+9. **`useSyncExternalStore`** — React 19'da neden `useEffect` yerine bu.
 
 **Seri adı:** YAPAY ZEKA İLE ŞUNU YAPTIM
 **Bölüm:** #1 — Leet 1337 Translator & AES Cipher
 **Geliştirici:** [@assyte](https://github.com/assyte)
+**Canlı demo:** https://github.com/assyte/asencoder
 
 ---
 

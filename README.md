@@ -89,12 +89,11 @@ cd asencoder
 # 2. Bağımlılıkları kur
 npm install
 
-# 3. Geliştirme sunucusunu başlat
+# 3. Geliştirme sunucusu
 npm run dev      # → http://localhost:3000
 
-# 4. Üretim derlemesi
-npm run build
-npm start
+# 4. Üretim derlemesi (statik export)
+npm run build    # → out/
 ```
 
 Ortam dosyası, API anahtarı veya veritabanı gerekmez.
@@ -104,10 +103,25 @@ Ortam dosyası, API anahtarı veya veritabanı gerekmez.
 | Komut | Açıklama |
 |---|---|
 | `npm run dev` | Geliştirme sunucusu |
-| `npm run build` | Üretim derlemesi |
-| `npm start` | Üretim sunucusunu başlat |
-| `npm run lint` | ESLint |
+| `npm run build` | Üretim derlemesi → `out/` (statik HTML) |
+| `npm run preview` | Üretim çıktısını yerelde sunar |
+| `npm run lint` | ESLint 9 (flat config) |
 | `npm run type-check` | TypeScript denetimi (`tsc --noEmit`) |
+| `npm run check` | type-check + lint + build zinciri |
+
+### Deploy
+
+Çıktı **tamamen statik** — `output: "export"` ayarı sayesinde sunucu katmanı
+hiç oluşturulmuyor. Bu yüzden herhangi bir statik host'a deploy edilebilir:
+
+- **Vercel** — doğrudan bağla, framework otomatik algılanır
+- **Cloudflare Pages** — build: `npm run build`, çıktı dizini: `out`
+- **Netlify** — build: `npm run build`, publish: `out`
+- **GitHub Pages** — Actions artifact'ı veya `out/` klasörü
+- **Nginx / Caddy / S3** — dosyaları kopyala, yapılandırma gerekmez
+
+> Static export sayesinde sunucu tarafı saldırı yüzeyi **sıfırdır**.
+> Server Actions, middleware ve RSC cache gibi bileşenler hiç oluşturulmaz.
 
 ---
 
@@ -193,10 +207,12 @@ Bu yaklaşım iki tuzağı aynı anda engeller:
 
 ### Tech
 
-- **Next.js 14** (App Router) + **TypeScript 5** (strict mode)
+- **Next.js 16** (App Router, Turbopack) + **React 19** + **TypeScript 5** (strict)
 - **Tailwind CSS 3** — CSS değişkeni tabanlı tema
+- **ESLint 9** — flat config (`eslint.config.mjs`)
 - **Web Crypto API** — AES için üçüncü taraf kütüphane yok
 - **Inter** + **JetBrains Mono** — `next/font/google` üzerinden
+- **Static export** (`output: "export"`) — sunucu katmanı yok
 
 ---
 
@@ -228,6 +244,20 @@ asEncoder tek bir ilke üzerine kurulu: **veriniz makinenizden asla çıkmaz.**
   çözme `OperationError` ile başarısız olur; sahte düz metin dönemez.
 
 Şifrenizi kaybederseniz **veri kurtarılamaz** — bu bilinçli bir tasarım kararıdır.
+
+### Bağımlılık denetimi
+
+```bash
+npm audit --omit=dev --audit-level=high   # → found 0 vulnerabilities
+```
+
+Yalnızca *çalışma zamanı* bağımlılıkları denetlenir. `--omit=dev` kullanılmasının
+sebebi: kalan uyarıların tamamı build-time araçlardan gelir (`chokidar`,
+`fast-glob`, `glob`) ve tarayıcıya paketlenmez.
+
+Ek olarak `output: "export"` ile uygulama tamamen statik HTML'e dönüşür —
+Server Actions, middleware, RSC cache gibi sunucu tarafı bileşenler hiç
+oluşturulmaz, dolayısıyla saldırı yüzeyi sıfırdır.
 
 ---
 
@@ -280,8 +310,9 @@ npm install
 npm run dev
 ```
 
-Değişiklik göndermeden önce `npm run type-check` ve `npm run lint`
-temiz geçmeli. CI bu iki kontrolü de otomatik çalıştırır.
+Değişiklik göndermeden önce `npm run check` temiz geçmeli
+(type-check + lint + build). CI aynı zinciri otomatik çalıştırır ve
+statik çıktının üretildiğini doğrular.
 
 ---
 

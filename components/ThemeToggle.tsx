@@ -1,37 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark";
 
+const STORAGE_KEY = "asencoder-theme";
+
 /**
- * 🌗 Tema değiştirme toggle.
- * - localStorage'a kaydeder
- * - Sayfa yüklendiğinde state'i hydrate eder (FOUC önleme layout'taki
- *   inline script tarafından hallediliyor, burada sadece UI güncellenir).
+ * Tema durumunu abone olarak oku.
+ *
+ * Neden `useSyncExternalStore`: Tema, `<head>` içindeki inline script ile
+ * hydrate ÖNCESİ uygulanır (FOUC önleme). Bu yüzden React'in ilk render'ında
+ * doğru değeri bilmesi gerekir. `useEffect` + `setState` yaklaşımı:
+ *
+ *   1. İlk render'da "dark" varsayar → hydration uyuşmazlığı (React 18 hata verir)
+ *   2. Effect içinde setState → cascading render, gereksiz tur
+ *
+ * `useSyncExternalStore` bu ikisini de çözer: sunucu snapshot'ı ile istemci
+ * snapshot'ını karşılaştırır, hydration sırasında doğru değeri kullanır ve
+ * dış sistem değişimlerine abone olur.
  */
+
+/** Tema değiştiğinde abonelere haber verir. */
+const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((fn) => fn());
+}
+
+/** `document` yalnızca tarayıcıda var; SSR'da snapshot döndürmüyoruz. */
+function subscribe(callback: () => void) {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
+}
+
+function getSnapshot(): Theme {
+  if (typeof document === "undefined") return "dark";
+  const value = document.documentElement.getAttribute("data-theme");
+  return value === "light" ? "light" : "dark";
+}
+
+function getServerSnapshot(): Theme {
+  // Sunucu her zaman koyu tema varsayar. Hydration sonrası istemci
+  // gerçek değeri devralır ve React farkı sessizce düzeltir.
+  return "dark";
+}
+
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [mounted, setMounted] = useState(false);
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    const current = document.documentElement.getAttribute("data-theme");
-    if (current === "light" || current === "dark") {
-      setTheme(current);
-    }
-    setMounted(true);
-  }, []);
-
-  const toggle = () => {
+  const toggle = useCallback(() => {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    setTheme(next);
     document.documentElement.setAttribute("data-theme", next);
     try {
-      localStorage.setItem("asencoder-theme", next);
+      localStorage.setItem(STORAGE_KEY, next);
     } catch {
-      // yok say
+      // localStorage erişimi reddedilirse (gizli sekme, kısıtlı izin)
+      // yalnızca DOM özniteliği güncellenir, tema yine de değişir.
     }
-  };
+    emit();
+  }, [theme]);
 
   return (
     <button
@@ -45,14 +73,12 @@ export default function ThemeToggle() {
       <span
         aria-hidden
         className="relative z-10 ml-1 text-xs leading-none text-white"
-        style={{ visibility: mounted ? "visible" : "hidden" }}
       >
         {theme === "dark" ? "☾" : "☀"}
       </span>
       <span
         aria-hidden
         className="relative z-10 mr-1 ml-auto text-xs leading-none text-text-muted"
-        style={{ visibility: mounted ? "visible" : "hidden" }}
       >
         {theme === "dark" ? "☀" : "☾"}
       </span>

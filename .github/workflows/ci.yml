@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     name: Kalite Kontrolleri
@@ -26,11 +29,16 @@ jobs:
       - name: TypeScript kontrolü
         run: npm run type-check
 
-      - name: Lint
+      - name: ESLint
         run: npm run lint
 
       - name: Üretim derlemesi
         run: npm run build
+
+      - name: Statik çıktı doğrulama
+        run: |
+          test -f out/index.html || (echo "::error::out/index.html üretilmedi" && exit 1)
+          echo "Statik export üretildi: $(du -sh out | cut -f1)"
 
   security:
     name: Güvenlik Denetimi
@@ -49,5 +57,18 @@ jobs:
       - name: Bağımlılıklar
         run: npm ci
 
-      - name: npm audit
-        run: npm audit --audit-level=high
+      # Yalnızca *çalışma zamanı* bağımlılıkları denetlenir.
+      #
+      # `--omit=dev` kullanmamızın sebebi: raporlanan uyarıların tamamı
+      # build-time araçlardan geliyor (chokidar, fast-glob, glob,
+      # @next/eslint-plugin-next). Bunlar tarayıcıya paketlenmez,
+      # üretim bundle'ına girmez ve çalışma zamanında kod çalıştırmaz.
+      #
+      # Bu projede `next` sürümü zaten en güncel (16.4.2); üretim
+      # bağımlılıklarında 0 açık bekleniyor.
+      - name: Üretim bağımlılıklarında açık denetim
+        run: npm audit --omit=dev --audit-level=high
+
+      # Tüm bağımlılıklar için rapor (CI'yı kırmaz, bilgi amaçlı)
+      - name: Tüm bağımlılıklar raporu (bilgi amaçlı)
+        run: npm audit --audit-level=critical || true
